@@ -1,0 +1,28 @@
+MCU=atmega32u4
+CXXFLAGS=-g -Wall -mcall-prologues -mmcu=$(MCU) -Os
+CXX=avr-g++
+LDFLAGS=-Wl,-gc-sections -Wl,-relax
+TARGET=main
+
+src = $(wildcard *.cpp)
+OBJECT_FILES = $(src:.cpp=.o)
+
+all: $(TARGET).hex
+test:
+	echo "test"
+	echo "$(CXX) $(CXXFLAGS) $(OBJECT_FILES) $(LDFLAGS) -o $@ $^"
+	echo "$(src)"
+	echo "$(OBJECT_FILES)"
+
+clean:
+	rm -f *.o *.hex *.obj *.hex
+
+%.hex: %.obj
+	avr-objcopy -R .eeprom -O ihex $< $@
+
+%.obj: $(OBJECT_FILES)
+	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) $(LDFLAGS) -o $@
+
+program: $(TARGET).hex
+	avrdude -p $(MCU) -c usbtiny -U flash:w:$(TARGET).hex
+	
