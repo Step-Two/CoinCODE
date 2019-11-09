@@ -320,9 +320,12 @@ public:
     void writeRegister( uint8_t reg, uint8_t data);
     void setDataRate( lis3dh_dataRate_t dataRate);
     void setDataRange( lis3dh_range_t dataRange);
+	void enableFreeFallInt1();
 	lis3dh_range_t getRange();
     bool init();
 	void read(float& x_g, float& y_g, float& z_g);
+	
+	void clearInterrupts();
 	
 private:
 	SPI& m_spi;

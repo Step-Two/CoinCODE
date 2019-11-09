@@ -12,7 +12,7 @@ bool LIS3DH::init()
  
   /* Check connection */
   uint8_t deviceid = readRegister(LIS3DH_REG_WHOAMI);
-  if (deviceid == 0) {
+  if (deviceid != 0x33) {
     /* No LIS3DH detected ... return false */
     // Serial.println(deviceid, HEX);
     return false;
@@ -21,7 +21,7 @@ bool LIS3DH::init()
   // enable all axes, normal mode
   writeRegister( LIS3DH_REG_CTRL1, 0x07);
   // 400Hz rate
-  setDataRate( LIS3DH_DATARATE_400_HZ);
+  setDataRate( LIS3DH_DATARATE_100_HZ);
 
   // High res & BDU enabled
   writeRegister( LIS3DH_REG_CTRL4, 0x88);
@@ -33,7 +33,7 @@ bool LIS3DH::init()
   // writeRegister8(LIS3DH_REG_PL_CFG, 0x40);
 
   // enable adcs
-  writeRegister( LIS3DH_REG_TEMPCFG, 0x80);
+  //writeRegister( LIS3DH_REG_TEMPCFG, 0x80);
 	return true;
 }
 
@@ -74,19 +74,44 @@ void LIS3DH::writeRegister(uint8_t reg, uint8_t data)
 	m_port |= (1<<m_cs);
 }
 
+void LIS3DH::enableFreeFallInt1()
+{
+	
+	writeRegister(0x22, 1<<6);
+	
+	//interupt config register (0x30)
+	
+	
+	//writeRegister(0x30, 0b10010101);
+	writeRegister(0x30, 0b10010101);
+	
+	//interrupt threshold (0x32)
+	writeRegister(0x32,0x04); //depending on data range, this sets the threshold
+	//approximately val*8*dataRange/1000
+	
+	//interupt duration(0x33) val number of clock cycles
+	writeRegister(0x33,0x08); 
+	
+	//interrupt source register (0x31)-read to clear
+	
+}
 
+void LIS3DH::clearInterrupts()
+{
+	readRegister(0x31);
+}
 void LIS3DH::read(float& x_g, float& y_g, float& z_g)
  {
 
     m_port &= ~(1<<m_cs);
     m_spi.transfer(LIS3DH_REG_OUT_X_L | 0x80 | 0x40); // read multiple, bit 7&6 high
 
-    uint16_t x = m_spi.transfer();
-    x |= ((uint16_t)m_spi.transfer()) << 8;
-    uint16_t y = m_spi.transfer();
-    y |= ((uint16_t)m_spi.transfer()) << 8;
-    uint16_t z = m_spi.transfer();
-    z |= ((uint16_t)m_spi.transfer()) << 8;
+    int16_t x = m_spi.transfer();
+    x |= ((int16_t)m_spi.transfer()) << 8;
+    int16_t y = m_spi.transfer();
+    y |= ((int16_t)m_spi.transfer()) << 8;
+    int16_t z = m_spi.transfer();
+    z |= ((int16_t)m_spi.transfer()) << 8;
 
     m_port |= (1<<m_cs);
 

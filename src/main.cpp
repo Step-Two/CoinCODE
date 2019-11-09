@@ -2,6 +2,7 @@
 
 
 #include <avr/io.h>
+#include <avr/interrupt.h>
 #include <util/delay.h>  
 
 #include "SPI.h"
@@ -26,6 +27,8 @@
   //
   
   
+ volatile uint8_t freeFallInt = 0; 
+  
 int main(void)
 {
 	DDRC |= 0xFF; //port c is outputs
@@ -39,20 +42,30 @@ int main(void)
 	
 	SPI spi;
 	
+	//interrupts:
+	cli(); //global interrupt off while changing this
+	//set pins as input
+	//PD0 > freefall
+	DDRD &= ~(1<<INT0);
+	//enable interrupt
+	EIMSK |= 1; //enable INT0
+	//set edge level
+	EICRA |= 0x3; //rising edge on INT0
+	EIFR |= 0x1; //clear the flag
 
 	
 	
-	LIS3DH lis(spi,PORTD,ACC_SEL);
+	LIS3DH lis(spi,PORTD,ACC_SEL); 
 	if(!lis.init())
 		return -1;
 	
 	lis.setDataRange(LIS3DH_RANGE_8_G);
-	lis.setDataRate(LIS3DH_DATARATE_10_HZ);
-	
-	
+	lis.setDataRate(LIS3DH_DATARATE_200_HZ);
+	lis.enableFreeFallInt1();
+	sei(); //enable global interrupts
 	while(1)
 	{
-		
+		/*
 		if(PIND & (1<<C_BUTTON))
 		{
 			PORTC |= ( 1 << LED1);
@@ -61,10 +74,22 @@ int main(void)
 		{
 			PORTC &= ~( 1 << LED1);
 		}
+		*/
+		
+		
+		if(freeFallInt)
+		{
+			PORTC |= ( 1 << LED1);
+			freeFallInt = 0;
+			_delay_ms(2000);
+			PORTC &= ~( 1 << LED1);
+				
+			lis.clearInterrupts();
+		}
 		float x = 0, y=0, z=0;
 		lis.read(x,y,z);
 		
-		if(x>z)
+		if(z>0)
 		{
 			PORTC |= ( 1 << LED0 );
 		}
@@ -72,7 +97,14 @@ int main(void)
 		{
 			PORTC &= ~( 1 << LED0 );
 		}
-		_delay_ms(5);
+		_delay_ms(1);
 	}
-
 };
+
+ISR(INT0_vect) //handle interrupt on INT0
+{
+	freeFallInt = 1;
+
+}
+
+
