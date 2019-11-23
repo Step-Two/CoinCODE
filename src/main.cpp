@@ -14,6 +14,8 @@
 #define LED1 PC7 
 
 #define C_BUTTON PD2 
+
+#define BUZZER PB5
   //to set input with pullup, DDRX = 0, PORTX = 1
   
   
@@ -31,19 +33,34 @@
   
 int main(void)
 {
+	//Buzzer is an output
+	DDRB |=(1 << BUZZER);
+	//PORTB |= (1<<BUZZER);
+	//Set 8-bit fast PWM mode
+	//(COM1A0:1 => set output on match, clear on top)
+	//WGM12:0 =111 => 10 bit fast pwm
+	
+	cli(); //global interrupt off while changing this
+	TCCR1A=(1<<WGM10)|(1<<COM1A0)|(1<<COM1A1);
+	TCCR1B =(1<<WGM12);
+	TCCR1B |=(1<<CS11)<<(1<<CS10);
+
+	OCR1A= 0x80;
+	
 	DDRC |= 0xFF; //port c is outputs
 	
 	DDRD = 0x00; //all inputs
 	PORTD |= ( 1<< C_BUTTON);//enable pullup
 	
 	//SPI lines are outputs and high
+	//TODO MISO isn't
 	DDRD |= (1<<DD4) | (1<<DD5) | (1<<DD6) | (1 <<DD7);
 	PORTD |=(1<<PD4) | (1<<PD5) | (1<<PD6) | (1 <<PD7);
 	
 	SPI spi;
 	
 	//interrupts:
-	cli(); //global interrupt off while changing this
+	
 	//set pins as input
 	//PD0 > freefall
 	DDRD &= ~(1<<INT0);

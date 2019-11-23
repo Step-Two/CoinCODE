@@ -2,8 +2,9 @@
 
 SPI::SPI()
 {
-	/* Set MOSI, SCK, SS as output, all others input */
-	DDRB = (1<<DDB2)|(1<<DDB1)|(1<<DDB0);
+	/* Set MOSI, SCK, SS as output*/
+	//todo: enforce MISO input
+	DDRB |= (1<<DDB2)|(1<<DDB1)|(1<<DDB0);
 	
 	PORTB |= (1<<MCUSS);
 	/* Enable SPI, Master, set clock rate fck/16 */
